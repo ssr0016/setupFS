@@ -5,6 +5,7 @@ import (
 	"ambassador/src/middlewares"
 	"ambassador/src/models"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -29,7 +30,7 @@ func Register(c *fiber.Ctx) error {
 		FirstName:    data["first_name"],
 		LastName:     data["last_name"],
 		Email:        data["email"],
-		IsAmbassador: false,
+		IsAmbassador: strings.Contains(c.Path(), "api/ambassador"),
 	}
 	// hash password
 	user.SetPassword(data["password"])
