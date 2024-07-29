@@ -10,6 +10,7 @@ import (
 func Setup(app *fiber.App) {
 	api := app.Group("api")
 
+	// Admin
 	admin := api.Group("admin")
 	admin.Post("register", controllers.Register)
 	admin.Post("login", controllers.Login)
@@ -31,6 +32,7 @@ func Setup(app *fiber.App) {
 
 	adminAuthenticated.Get("orders", controllers.Orders)
 
+	// Ambassador
 	ambassador := api.Group("ambassador")
 	ambassador.Post("register", controllers.Register)
 	ambassador.Post("login", controllers.Login)
@@ -43,4 +45,8 @@ func Setup(app *fiber.App) {
 	ambassadorAuthenticated.Post("logout", controllers.Logout)
 	ambassadorAuthenticated.Put("users/info", controllers.UpdateInfo)
 	ambassadorAuthenticated.Put("users/password", controllers.UpdatePassword)
+
+	ambassadorAuthenticated.Post("links", controllers.CreateLink)
+	ambassadorAuthenticated.Get("stats", controllers.Stats)
+
 }
