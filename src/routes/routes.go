@@ -36,6 +36,7 @@ func Setup(app *fiber.App) {
 	ambassador := api.Group("ambassador")
 	ambassador.Post("register", controllers.Register)
 	ambassador.Post("login", controllers.Login)
+
 	// Public routes
 	ambassador.Get("products/frontend", controllers.ProductsFrontEnd)
 	ambassador.Get("products/backend", controllers.ProductsBackEnd)
@@ -48,5 +49,7 @@ func Setup(app *fiber.App) {
 
 	ambassadorAuthenticated.Post("links", controllers.CreateLink)
 	ambassadorAuthenticated.Get("stats", controllers.Stats)
+
+	ambassadorAuthenticated.Get("rankings", controllers.Rankings)
 
 }
