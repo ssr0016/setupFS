@@ -9,6 +9,7 @@ services:
       - .:/app
     depends_on:
       - db
+      - redis
   
   db:
     image: mysql:5.7.22
@@ -22,5 +23,11 @@ services:
       - .dbdata:/var/lib/mysql
     ports:
       - 33066:3306
+  
+  redis:
+    image: redis:latest
+    ports:
+      - 63799:6379
+
 
 
