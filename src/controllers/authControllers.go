@@ -4,11 +4,9 @@ import (
 	"ambassador/src/database"
 	"ambassador/src/middlewares"
 	"ambassador/src/models"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -66,13 +64,27 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	// jwt token
-	payload := jwt.StandardClaims{
-		Subject:   strconv.Itoa(int(user.Id)),
-		ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+	// check scope... check if user is ambassador or not
+	isAmbassador := strings.Contains(c.Path(), "api/ambassador")
+
+	var scope string
+
+	if isAmbassador {
+		scope = "ambassador"
+	} else {
+		scope = "admin"
 	}
 
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, payload).SignedString([]byte("secret"))
+	// preventing the ambassador use to login as an admin
+	if !isAmbassador && user.IsAmbassador {
+		c.Status(fiber.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "unauthorized",
+		})
+	}
+
+	// generate jwt
+	token, err := middlewares.GenerateJWT(user.Id, scope)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
