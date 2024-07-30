@@ -115,7 +115,7 @@ func CreateOrder(c *fiber.Ctx) error {
 		})
 	}
 
-	stripe.Key = "sk_test_51H0wSsFHUJ5mamKOVQx6M8kihCIxpBk6DzOhrf4RrpEqgh2bfpI7vbsVu2j5BT0KditccHBnepG33QudcrtBUHfv00Bbw1XXjL"
+	stripe.Key = ""
 
 	params := stripe.CheckoutSessionParams{
 		SuccessURL:         stripe.String("http://localhost:5000/success?source={CHECKOUT_SESSION_ID}"),
@@ -143,7 +143,6 @@ func CreateOrder(c *fiber.Ctx) error {
 			"message": err.Error(),
 		})
 	}
-
 	// stripe ended
 
 	tx.Commit()
@@ -152,4 +151,29 @@ func CreateOrder(c *fiber.Ctx) error {
 	return c.JSON(order)
 }
 
-// secret_key form stripe = sk_test_51H0wSsFHUJ5mamKOVQx6M8kihCIxpBk6DzOhrf4RrpEgqh2bfpI7vbsVu2j5BT0KditccHBnepG33QudcrtBUHfv00Bbw1XXjl
+func CompleteOrder(c *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := c.BodyParser(&data); err != nil {
+		return err
+	}
+
+	order := models.Order{}
+
+	database.DB.Preload("OrderItems").First(&order, models.Order{
+		TransactionId: data["source"],
+	})
+
+	if order.Id == 0 {
+		c.Status(fiber.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "Order not found",
+		})
+	}
+
+	order.Complete = true
+
+	database.DB.Save(&order)
+
+	return c.JSON(order)
+}
