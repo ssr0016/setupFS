@@ -3,6 +3,9 @@ package controllers
 import (
 	"ambassador/src/database"
 	"ambassador/src/models"
+	"context"
+	"fmt"
+	"net/smtp"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stripe/stripe-go/v72"
@@ -115,7 +118,7 @@ func CreateOrder(c *fiber.Ctx) error {
 		})
 	}
 
-	stripe.Key = ""
+	stripe.Key = "sk_test_51H0wSsFHUJ5mamKOVQx6M8kihCIxpBk6DzOhrf4RrpEqgh2bfpI7vbsVu2j5BT0KditccHBnepG33QudcrtBUHfv00Bbw1XXjL"
 
 	params := stripe.CheckoutSessionParams{
 		SuccessURL:         stripe.String("http://localhost:5000/success?source={CHECKOUT_SESSION_ID}"),
@@ -172,8 +175,41 @@ func CompleteOrder(c *fiber.Ctx) error {
 	}
 
 	order.Complete = true
-
 	database.DB.Save(&order)
 
-	return c.JSON(order)
+	// it is for rankings
+	go func(order models.Order) {
+		ambassadorRevenue := 0.0
+		adminRevenue := 0.0
+
+		for _, item := range order.OrderItems {
+			ambassadorRevenue += item.AmbassadorRevenue
+			adminRevenue += item.AdminRevenue
+		}
+
+		user := models.User{}
+		user.Id = order.UserId
+
+		database.DB.First(&user)
+
+		database.Cache.ZIncrBy(context.Background(), "rankings", ambassadorRevenue, user.Name())
+
+		// MailHog started
+		ambassadorMessage := []byte(fmt.Sprintf("You earned $%f from the link #%s", ambassadorRevenue, order.Code))
+
+		smtp.SendMail("172.17.0.1:1025", nil, "no-reply@email.com", []string{order.AmbassadorEmail}, ambassadorMessage)
+
+		adminMessage := []byte(fmt.Sprintf("Order #%d with a total of $%f has been completed", order.Id, adminRevenue))
+
+		smtp.SendMail("172.17.0.1:1025", nil, "no-reply@email.com", []string{"admin@admin.com"}, adminMessage)
+		// MailHog ended
+
+	}(order)
+	// rankings ended
+
+	return c.JSON(fiber.Map{
+		"message": "success",
+	})
 }
+
+// docker network inspect bridge | grep Gateway
